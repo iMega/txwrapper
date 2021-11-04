@@ -31,22 +31,22 @@ func New(db *sql.DB) *TxWrapper {
 func (w *TxWrapper) Transaction(
 	ctx context.Context,
 	opts *sql.TxOptions,
-	f TxFunc,
+	txfn TxFunc,
 ) error {
-	tx, err := w.DB.BeginTx(ctx, opts)
+	wtx, err := w.DB.BeginTx(ctx, opts)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction, %w", err)
 	}
 
-	if err := f(ctx, tx); err != nil {
-		if e := tx.Rollback(); e != nil {
+	if err := txfn(ctx, wtx); err != nil {
+		if e := wtx.Rollback(); e != nil {
 			return fmt.Errorf("failed to execute transaction, %w", err)
 		}
 
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := wtx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction, %w", err)
 	}
 
